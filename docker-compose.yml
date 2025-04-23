@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  db:
+    build: ./bd
+    container_name: faq_db_container
+    environment:
+      POSTGRES_USER: faq_app
+      POSTGRES_PASSWORD: app_curso_faat
+      POSTGRES_DB: faq_db
+    volumes:
+      - faq-postgres-data:/var/lib/postgresql/data
+      - ./bd/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "2000:5432"
+    networks:
+      - faq-net
+
+  app:
+    build: ./app
+    container_name: faq_app_container
+    environment:
+      DATABASE_URL: postgres://faq_app:app_curso_faat@db:5432/faq_db
+    ports:
+      - "3000:3000"
+      - "8501:8501"
+    depends_on:
+      - db
+    networks:
+      - faq-net
+      
+      # Serviço para o MongoDB
+  mongo:
+    build: ./mongo
+    container_name: faq_mongo_container
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpassword
+    ports:
+      - "27017:27017"  # Mapeamento da porta do MongoDB
+    networks:
+      - faq-net
+
+  postgres-exporter:
+    image: bitnami/postgres-exporter:latest
+    container_name: faq_postgres_exporter
+    environment:
+      DATA_SOURCE_NAME: postgres://faq_app:sua_senha_segura@db:5432/faq_db
+    ports:
+      - "9187:9187"
+    networks:
+      - faq-net
+    depends_on:
+      - db
+
+networks:
+  faq-net:
+    driver: bridge
+
+volumes:
+  faq-postgres-data:
+  faq-prometheus-data:
+  faq-grafana-data:
